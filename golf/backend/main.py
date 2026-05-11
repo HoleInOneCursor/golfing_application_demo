@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import date
 from typing import Annotated
 
@@ -8,6 +9,12 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .database import Base, engine, get_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Base.metadata.create_all(bind=engine)
+    yield
 
 
 class CourseBase(BaseModel):
@@ -44,7 +51,7 @@ class Round(RoundBase):
     id: int
 
 
-app = FastAPI(title="Golf Backend API")
+app = FastAPI(title="Golf Backend API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,11 +60,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def create_tables() -> None:
-    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/api/health")
